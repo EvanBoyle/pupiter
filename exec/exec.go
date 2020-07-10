@@ -2,6 +2,7 @@ package exec
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/evanboyle/pupiter/session"
@@ -52,4 +53,17 @@ func Get(varName string, session session.Session) (string, string, error) {
 		return "", "", err
 	}
 	return string(oStr), string(sStr), nil
+}
+
+func List(session session.Session) ([]string, error) {
+	files, err := ioutil.ReadDir(session.Dir())
+	if err != nil {
+		return nil, err
+	}
+
+	var res []string
+	for _, f := range files {
+		res = append(res, f.Name())
+	}
+	return res, nil
 }

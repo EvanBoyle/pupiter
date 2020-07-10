@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,7 +15,7 @@ type Evaluator interface {
 	Eval(input string) (string, error)
 	addVar(statement Statement) (string, error)
 	getVar(statement Statement) (string, string, error)
-	getVars() []string
+	getVars() ([]string, error)
 }
 
 type evaluator struct {
@@ -35,21 +36,32 @@ func (e *evaluator) Eval(input string) (string, error) {
 
 	// todo - addVar getVar
 	statement := parse(input)
-	if statement.Type == Exec {
-		fmt.Printf("adding var: %s\n", input)
+	switch statement.Type {
+	case Exec:
 		out, err := e.addVar(statement)
 		if err != nil {
 			return "", err
 		}
 		return out, nil
-	}
-	fmt.Printf("retrieving var: %s\n", input)
-	outs, secs, err := e.getVar(statement)
-	if err != nil {
-		return "", err
+	case List:
+		vars, err := e.getVars()
+		if err != nil {
+			return "", err
+		}
+		return strings.Join(vars, "\n"), nil
+	case Ref:
+		fmt.Printf("retrieving var: %s\n", input)
+		outs, secs, err := e.getVar(statement)
+		if err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("outputs: %s\nsecret outputs: %s\n", outs, secs), nil
+	default:
+		return "", errors.New("unable to parse statement")
 	}
 
-	return fmt.Sprintf("outputs: %s\nsecret outputs: %s\n", outs, secs), nil
+	return "", errors.New("unable to parse statement")
 }
 
 func (e *evaluator) addVar(statement Statement) (string, error) {
@@ -68,9 +80,8 @@ func (s *evaluator) getVar(statement Statement) (string, string, error) {
 	return exec.Get(statement.VarName, s.session)
 }
 
-func (s *evaluator) getVars() []string {
-
-	return nil
+func (s *evaluator) getVars() ([]string, error) {
+	return exec.List(s.session)
 }
 
 type StatementType = int
@@ -78,6 +89,7 @@ type StatementType = int
 const (
 	Exec StatementType = iota
 	Ref
+	List
 )
 
 type Statement struct {
@@ -88,6 +100,12 @@ type Statement struct {
 
 func parse(input string) Statement {
 	input = strings.TrimSpace(input)
+	// TODO: not so robust...
+	if input == "ls();" {
+		return Statement{
+			Type: List,
+		}
+	}
 	if !strings.Contains(input, "=") {
 		return Statement{
 			VarName: strings.Trim(input, ";"),
