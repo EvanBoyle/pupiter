@@ -1,6 +1,7 @@
 package write
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -27,21 +28,27 @@ const pulumi = require("@pulumi/pulumi");
 const aws = require("@pulumi/aws");
 const awsx = require("@pulumi/awsx");
 
+module.exports = async () => {
+
+%s // stack reference code
+
 // ---------------------------------------------
 
 %s // user program
 
 // ---------------------------------------------
 
-for (var propName in %[2]s) {
-    if(%[2]s.hasOwnProperty(propName)) {
-        if (typeof %[2]s[propName] === "object") {
-            %[2]s[propName].isSecret = Promise.resolve(false);
+for (var propName in %[3]s) {
+    if(%[3]s.hasOwnProperty(propName)) {
+        if (typeof %[3]s[propName] === "object") {
+            %[3]s[propName].isSecret = Promise.resolve(false);
         }
        
     }
 }
-exports.%[2]s = %[2]s;
+ return {%[3]s}
+
+}
 
 `
 
@@ -74,9 +81,25 @@ func writePulumiYaml(dir, sessionName string) error {
 	return nil
 }
 
-func writeIndexJS(dir, input, varName string) error {
+func writeIndexJS(dir, input, sessionName, varName string, existingVars []string) error {
+	var stackRefBuffer bytes.Buffer
+	for i, v := range existingVars {
+		if v == varName {
+			continue
+		}
+		// TODO configure WHOAMI
+		ref := `var __ref%d = new pulumi.StackReference("evanboyle/%s/%s");
+		`
+		ref = fmt.Sprintf(ref, i, sessionName, v)
+		stackRefBuffer.WriteString(ref)
+		varDecl := `var %s = await __ref%d.getOutputValue(%q);
+		`
+		varDecl = fmt.Sprintf(varDecl, v, i, v)
+		stackRefBuffer.WriteString(varDecl)
+	}
+
 	fname := filepath.Join(dir, "index.js")
-	text := fmt.Sprintf(indexjs, input, varName)
+	text := fmt.Sprintf(indexjs, stackRefBuffer.String(), input, varName)
 	err := ioutil.WriteFile(fname, []byte(text), 0777)
 	if err != nil {
 		return err
@@ -117,7 +140,7 @@ func symlinkNodeModules(parentDir, targetDir string) error {
 	return nil
 }
 
-func WriteFiles(varName, text string, session session.Session) error {
+func WriteFiles(varName, text string, session session.Session, existingVars []string) error {
 	targetDir := path.Join(session.Dir(), varName)
 	err := os.MkdirAll(targetDir, 0777)
 	if err != nil {
@@ -127,7 +150,7 @@ func WriteFiles(varName, text string, session session.Session) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to write Pulumi.yaml")
 	}
-	err = writeIndexJS(targetDir, text, varName)
+	err = writeIndexJS(targetDir, text, session.Name(), varName, existingVars)
 	if err != nil {
 		return errors.Wrap(err, "unable to write index.js")
 	}
