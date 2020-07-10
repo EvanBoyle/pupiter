@@ -18,23 +18,47 @@ func NewPupiterCmd() *cobra.Command {
 		Short: "Pupiter is an interpreter for Pulumi.",
 		Long:  `Pupiter is an interpreter for Pulumi.`,
 		Run: func(cmd *cobra.Command, args []string) {
-
-			// TODO use a randomly generated name that we print out for a "session ID"
-			// Add a parameter to look up a session id ~/.pulumi/pupiter/<sessionID>
-
 			user, err := user.Current()
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("Hello %s! Welcome to pupiter!!\n", user.Username)
-			fmt.Printf("Where engineers come...\n")
-			fmt.Printf("...to get more educated about the cloud.\n")
-			fmt.Printf("\n")
+			fmt.Printf("Hello %s! Welcome to Pupiter!!\n", user.Username)
 			fmt.Println("Define a pulumi resource...")
 			fmt.Println("-----------------------RULES-----------------------")
-			fmt.Println("Define pulumi resources using standard javascript.")
+			fmt.Println(`1. Add resources through individual var declarations (';' triggers evaluation):
+			var x = new aws.s3.Bucket("mybucket");
+			
+			`)
+			fmt.Println(`2. Read back variables:
+			x;
+			{...output...}
+
+			`)
+			fmt.Println(`3. List all variables in the current session:
+			ls();
+			x
+			y
+			z
+			...
+			
+			`)
+			fmt.Println(`4. Capture your complete program with eject:
+			eject();
+
+			var x = new aws.s3.Bucket("mybucket");
+			var y = ...;
+			var z = ...;
+			...
+			
+			`)
+
+			fmt.Println(`4. Scope traversal is allowed:
+			var y = new aws.s3.BucketObject("y", { bucket: x.bucket });
+			
+			`)
 			fmt.Println("Evaluation occurs after ';'")
-			fmt.Println("Pulumi resource declarations can refer to previous resource declarations.")
+			fmt.Println("Only simple statements in the form `var x = ...;` are supported")
+
 			fmt.Println("-----------------------ENJOY-----------------------")
 
 			rand.Seed(time.Now().UTC().UnixNano())
