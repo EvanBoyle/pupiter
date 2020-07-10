@@ -3,7 +3,12 @@ package eval
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/bradfitz/slice"
 
 	"github.com/evanboyle/pupiter/exec"
 	"github.com/evanboyle/pupiter/session"
@@ -49,6 +54,8 @@ func (e *evaluator) Eval(input string) (string, error) {
 			return "", err
 		}
 		return strings.Join(vars, "\n"), nil
+	case Eject:
+		return e.eject()
 	case Ref:
 		fmt.Printf("retrieving var: %s\n", input)
 		outs, secs, err := e.getVar(statement)
@@ -89,12 +96,48 @@ func (s *evaluator) getVars() ([]string, error) {
 	return exec.List(s.session)
 }
 
+func (s *evaluator) eject() (string, error) {
+	files, err := ioutil.ReadDir(s.session.Dir())
+	if err != nil {
+		return "", err
+	}
+	slice.Sort(files[:], func(i, j int) bool {
+		return files[i].ModTime().Before(files[j].ModTime())
+	})
+
+	program := `
+const pulumi = require("@pulumi/pulumi");
+const aws = require("@pulumi/aws");
+
+%s
+`
+
+	var codes []string
+	for _, v := range files {
+		v.Name()
+
+		fName := filepath.Join(s.session.Dir(), v.Name(), "index.js")
+		f, err := os.Open(fName)
+		if err != nil {
+			return "", nil
+		}
+		bytes := make([]byte, 10000000)
+		f.Read(bytes)
+		contents := string(bytes)
+		code := strings.Split(contents, "// ---------------------------------------------")[1]
+		codes = append(codes, code)
+	}
+
+	return fmt.Sprintf(program, strings.Join(codes, "\n")), nil
+}
+
 type StatementType = int
 
 const (
 	Exec StatementType = iota
 	Ref
 	List
+	Eject
 )
 
 type Statement struct {
@@ -109,6 +152,12 @@ func parse(input string) Statement {
 	if input == "ls();" {
 		return Statement{
 			Type: List,
+		}
+	}
+	// TODO: not so robust...
+	if input == "eject();" {
+		return Statement{
+			Type: Eject,
 		}
 	}
 	if !strings.Contains(input, "=") {
