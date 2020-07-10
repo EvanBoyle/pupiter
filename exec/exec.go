@@ -32,3 +32,24 @@ func Execute(varName string, session session.Session) (string, error) {
 	}
 	return string(b), nil
 }
+
+func Get(varName string, session session.Session) (string, string, error) {
+	p := auto.Project{
+		Name:       session.Name(),
+		SourcePath: filepath.Join(session.Dir(), varName),
+	}
+	s := &auto.Stack{
+		Name:    varName,
+		Project: p,
+	}
+	outs, secs, err := s.GetOutputs()
+	oStr, err := json.MarshalIndent(outs, "", "  ")
+	if err != nil {
+		return "", "", err
+	}
+	sStr, err := json.MarshalIndent(secs, "", "  ")
+	if err != nil {
+		return "", "", err
+	}
+	return string(oStr), string(sStr), nil
+}

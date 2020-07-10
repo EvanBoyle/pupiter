@@ -13,7 +13,7 @@ type Evaluator interface {
 	isEvaluator()
 	Eval(input string) (string, error)
 	addVar(statement Statement) (string, error)
-	getVar(statement Statement)
+	getVar(statement Statement) (string, string, error)
 	getVars() []string
 }
 
@@ -44,8 +44,12 @@ func (e *evaluator) Eval(input string) (string, error) {
 		return out, nil
 	}
 	fmt.Printf("retrieving var: %s\n", input)
-	// TODO
-	return "", nil
+	outs, secs, err := e.getVar(statement)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("outputs: %s\nsecret outputs: %s\n", outs, secs), nil
 }
 
 func (e *evaluator) addVar(statement Statement) (string, error) {
@@ -60,8 +64,8 @@ func (e *evaluator) addVar(statement Statement) (string, error) {
 	return out, nil
 }
 
-func (s *evaluator) getVar(statement Statement) {
-
+func (s *evaluator) getVar(statement Statement) (string, string, error) {
+	return exec.Get(statement.VarName, s.session)
 }
 
 func (s *evaluator) getVars() []string {
