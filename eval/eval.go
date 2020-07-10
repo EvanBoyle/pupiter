@@ -69,6 +69,7 @@ func (e *evaluator) addVar(statement Statement) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	err = write.WriteFiles(statement.VarName, statement.Text, e.session, vars)
 	if err != nil {
 		return "", err

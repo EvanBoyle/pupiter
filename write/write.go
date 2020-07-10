@@ -10,6 +10,7 @@ import (
 
 	"github.com/evanboyle/pupiter/session"
 	"github.com/pkg/errors"
+	"github.com/pulumi/pulumi/sdk/v2/go/x/auto"
 )
 
 // TODO write out to a given src directory in ~/.pulumi/pupiter
@@ -82,15 +83,24 @@ func writePulumiYaml(dir, sessionName string) error {
 }
 
 func writeIndexJS(dir, input, sessionName, varName string, existingVars []string) error {
+	p := auto.Project{
+		Name:       sessionName,
+		SourcePath: dir,
+	}
+	s := &auto.Stack{
+		Name:    varName,
+		Project: p,
+	}
+	user, err := s.GetUser()
+
 	var stackRefBuffer bytes.Buffer
 	for i, v := range existingVars {
 		if v == varName {
 			continue
 		}
-		// TODO configure WHOAMI
-		ref := `var __ref%d = new pulumi.StackReference("evanboyle/%s/%s");
+		ref := `var __ref%d = new pulumi.StackReference("%s/%s/%s");
 		`
-		ref = fmt.Sprintf(ref, i, sessionName, v)
+		ref = fmt.Sprintf(ref, i, user, sessionName, v)
 		stackRefBuffer.WriteString(ref)
 		varDecl := `var %s = await __ref%d.getOutputValue(%q);
 		`
@@ -100,7 +110,7 @@ func writeIndexJS(dir, input, sessionName, varName string, existingVars []string
 
 	fname := filepath.Join(dir, "index.js")
 	text := fmt.Sprintf(indexjs, stackRefBuffer.String(), input, varName)
-	err := ioutil.WriteFile(fname, []byte(text), 0777)
+	err = ioutil.WriteFile(fname, []byte(text), 0777)
 	if err != nil {
 		return err
 	}
