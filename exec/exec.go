@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/evanboyle/pupiter/auto"
 	"github.com/evanboyle/pupiter/session"
 	"github.com/pkg/errors"
-	"github.com/pulumi/pulumi/sdk/v2/go/x/auto"
 )
 
 // TODO pulumi up via auto

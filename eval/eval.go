@@ -38,8 +38,6 @@ func NewEvaluator(session session.Session) Evaluator {
 // Eval takes the given input and executes it
 // with some hand waving in between
 func (e *evaluator) Eval(input string) (string, error) {
-
-	// todo - addVar getVar
 	statement := parse(input)
 	switch statement.Type {
 	case Exec:
@@ -67,8 +65,6 @@ func (e *evaluator) Eval(input string) (string, error) {
 	default:
 		return "", errors.New("unable to parse statement")
 	}
-
-	return "", errors.New("unable to parse statement")
 }
 
 func (e *evaluator) addVar(statement Statement) (string, error) {

@@ -8,9 +8,9 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/evanboyle/pupiter/auto"
 	"github.com/evanboyle/pupiter/session"
 	"github.com/pkg/errors"
-	"github.com/pulumi/pulumi/sdk/v2/go/x/auto"
 )
 
 // TODO write out to a given src directory in ~/.pulumi/pupiter
