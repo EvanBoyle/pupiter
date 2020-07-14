@@ -13,7 +13,7 @@ import (
 )
 
 func NewPupiterCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "pupiter [session]",
 		Short: "Pupiter is an interpreter for Pulumi.",
 		Long:  `Pupiter is an interpreter for Pulumi.`,
@@ -70,4 +70,8 @@ func NewPupiterCmd() *cobra.Command {
 			repl.Start(os.Stdin, os.Stdout, session)
 		},
 	}
+
+	cmd.AddCommand(NewNotebookCmd())
+
+	return cmd
 }
