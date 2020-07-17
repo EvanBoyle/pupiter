@@ -14,9 +14,10 @@ import (
 
 func NewPupiterCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "pupiter [session]",
+		Use:   "pupiter [<session>|notebook]",
 		Short: "Pupiter is an interpreter for Pulumi.",
 		Long:  `Pupiter is an interpreter for Pulumi.`,
+		Args:  cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			user, err := user.Current()
 			if err != nil {
